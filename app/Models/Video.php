@@ -12,5 +12,4 @@ class Video extends Model
         'name',
         'user_id'
     ];
-
 }

@@ -3,18 +3,22 @@
         <video class="rounded" controls v-for="video in videos" :src="video.name" width="150"></video>
     </div>
     <div class="d-flex">
-        <div class="w-1/2 bg-slate-800 ">
-            <button class="rounded ml-[200px] mt-[20px] bg-[#0891b2]" id="start-camera"
-                    @click="camera_button">
-                Start Camera
-            </button>
-            <button class="rounded ml-5 mt-[20px] bg-[#16a34a]" id="stop-record"
-                    @click="stop_button();saveVideo()">
-                Save Recording
-            </button>
+        <div class="w-1/2 bg-slate-800">
+            <div class="w-full text-center">
+                <button v-if="button"
+                        class="rounded mt-[10px] bg-[#0891b2]" id="start-camera"
+                        @click="cameraButton">
+                    Start Camera
+                </button>
+                <button v-else
+                        class="rounded  mt-[10px] bg-[#16a34a]" id="stop-record"
+                        @click="saveVideo">
+                    Save Recording
+                </button>
+            </div>
             <video
-                class="rounded-lg mt-[20px] ml-[70px] w-[500px] h-[400px]" ref="videoelem"
-                autoplay :srcObject="camera_stream" >
+                class="rounded-lg w-full text-center mt-[10px] w-[100%] h-[80%]" ref="videoelem"
+                autoplay :srcObject="cameraStream" >
             </video>
         </div>
         <div  class="w-1/2 bg-slate-400 text-blue-900" >
@@ -24,7 +28,8 @@
                     <div class="fs-4">
                         Chose text
                     </div>
-                    <select v-model="selected"
+                    <select v-model="selectedTemplateId"
+                            @change="getTemplateText"
                            id="template"
                            name="template"
                            class="bg-blue-50 border border-gray-300  text-sm
@@ -32,14 +37,13 @@
                            p-2.5 dark:bg-blue-700 dark:border-gray-600 dark:placeholder-blue-400
                            dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                         <option v-for="template in templates"
-                                :value="template.text" >
+                                :value="template.id">
                             {{ template.name }}
                         </option>
                     </select>
-                    <div class="mt-[10px] " v-for="user in users">
+                    <div class="mt-[10px]">
                         {{ selected }}
                     </div>
-
                 </div>
             </div>
         </div>
@@ -50,35 +54,26 @@
 
 export default {
     name: "UserDashboard",
-    created() {
-        this.getTextList();
-        this.getUserName();
-        this.getVideos();
-    },
     data(){
         return{
-            users:{},
-            videos:{},
-            templates:[],
+            users: {},
+            videos: {},
+            button: true,
             selected: '',
-            recorder:null,
-            videoError:'',
-            blobContainer:[],
+            templates: [],
+            recorder: null,
+            videoError: '',
+            blobContainer: [],
             blobs_recorded : [],
-            selectedTemplate:{},
-            camera_stream : null,
+            selectedTemplate: {},
+            cameraStream : null,
             media_recorder : null,
+            selectedTemplateId: null,
             videoElem : this.$refs.videoelem,
         }
     },
 
     methods : {
-        getUserName() {
-            axios.post( '/get-username/').then(res => {
-                this.users = res.data.users;
-            });
-        },
-
         getTextList() {
             axios.post('/get-text-list/').then(res => {
                 this.templates = res.data.templates;
@@ -91,22 +86,33 @@ export default {
             });
         },
 
-        camera_button() {
-             navigator.mediaDevices
-                .getUserMedia({ video: true, audio: true }).then(stream => {
-                 this.camera_stream = stream;
-                 this.recorder = new MediaRecorder(stream)
-                 this.recorder.start();
-                 this.recorder.ondataavailable = (e) =>{
-                     this.blobContainer.push(e.data)
-                 };
-                 this.recorder.onerror =function (e){
-                     return console.log(e.error || new Error(e.name))
-                 }
-             });
+        getTemplateText() {
+            axios.post('/get-single-template/', { id: this.selectedTemplateId })
+                .then(res => {
+                    this.selected = res.data.text;
+                });
+        },
+
+        cameraButton() {
+            this.blobContainer = [];
+            this.button = false
+            navigator.mediaDevices
+                .getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    this.cameraStream = stream;
+                    this.recorder = new MediaRecorder(stream)
+                    this.recorder.start();
+                    this.recorder.ondataavailable = (e) => {
+                        this.blobContainer.push(e.data)
+                    };
+                    this.recorder.onerror = function (e) {
+                        return console.log(e.error || new Error(e.name))
+                    }
+                });
         },
 
         saveVideo(){
+            this.button = true
             this.recorder.onstop = async (e) => {
                 let blobUrl = window.URL.createObjectURL(new Blob(this.blobContainer));
                 let blob = await fetch(blobUrl).then(r => r.blob());
@@ -124,16 +130,19 @@ export default {
                 }).catch(res => {
                     this.videoError = "error"
                 });
-                this.camera_stream.getTracks().forEach(function(track) {
+                this.cameraStream.getTracks().forEach(function(track) {
                     track.stop();
                 });
             }
-        },
-
-        stop_button() {
             this.$refs.videoelem.pause();
+            this.$refs.videoelem.srcObject = null;
             this.recorder.stop();
         },
+    },
+
+    created() {
+        this.getTextList();
+        this.getVideos();
     }
 }
 </script>

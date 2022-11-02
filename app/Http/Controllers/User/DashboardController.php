@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\Template;
-use App\Models\User;
-use App\Models\Video;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\Template;
+use App\Models\Video;
+
 
 class DashboardController extends Controller
 {
@@ -20,27 +20,19 @@ class DashboardController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function saveVideo(Request $request) {
-        $video = $request->file('video');
+    public function saveVideo(Request $request): JsonResponse
+    {
         $name = uniqid() . '.mp4';
-        $path = '/upload/' . $name;
-        $request->file('video')->move(public_path('/upload/'), $name);
+        $path = '/storage/upload/' . $name;
+        $request->file('video')->move(public_path('/storage/upload/'), $name);
         $video = Video::create([
             'name' => $path,
             'user_id' => auth()->id(),
         ]);
-        return response()->json(['success' => 'Video Uploaded Successfully',
+        return response()->json([
+            'success' => 'Video Uploaded Successfully',
             'file' => $video
         ]);
-    }
-
-    /**
-     * @return JsonResponse
-     */
-    public function getUserName(): JsonResponse
-    {
-        $users = User::where('id', auth()->id())->get();
-        return response()->json(['users' => $users]);
     }
 
     /**
@@ -57,12 +49,19 @@ class DashboardController extends Controller
      */
     public function getTextList(): JsonResponse
     {
-        $templates = Template::all();
-        $userName = auth()->user()->name;
-        foreach($templates as $template){
-
-            $template->text = str_replace(':name',$userName, $template->text);
-        }
+        $templates = Template::get(['name', 'id']);
         return response()->json(['templates' => $templates]);
+    }
+
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getSingleTemplate(Request $request): JsonResponse
+    {
+        $id = $request->input('id');
+        $template = Template::find($id);
+        $template->text = str_replace(':name', auth()->user()->name, $template->text);
+        return response()->json(['text' => $template->text]);
     }
 }

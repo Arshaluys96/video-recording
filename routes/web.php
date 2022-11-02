@@ -24,13 +24,10 @@ Route::get('/home/', [App\Http\Controllers\HomeController::class, 'index'])->nam
 
 Route::get('/user/dashboard/', [\App\Http\Controllers\User\DashboardController::class, 'index']);
 Route::post('/video/', [\App\Http\Controllers\User\DashboardController::class, 'saveVideo']);
-Route::post('/get-username/', [\App\Http\Controllers\User\DashboardController::class,
-    'getUserName'])
-    ->name('get.username');
-Route::post('/get-text-list/', [\App\Http\Controllers\User\DashboardController::class,
-    'getTextList'])
+Route::post('/get-text-list/', [\App\Http\Controllers\User\DashboardController::class, 'getTextList'])
     ->name('get.text.list');
-Route::post('/get-videos/', [\App\Http\Controllers\User\DashboardController::class,
-    'getVideo'])
+Route::post('/get-videos/', [\App\Http\Controllers\User\DashboardController::class, 'getVideo'])
     ->name('get.video');
+Route::post('/get-single-template', [\App\Http\Controllers\User\DashboardController::class, 'getSingleTemplate'])
+    ->name('get.single.template');
 
